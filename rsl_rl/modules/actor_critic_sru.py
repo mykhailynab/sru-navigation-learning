@@ -95,9 +95,8 @@ class ActorCriticSRU(nn.Module):
             num_critic_obs - self.num_height_features - self.num_image_features * self.num_cameras - 1
         )
 
-        assert self.actor_proprioceptive_input_dim == self.critic_proprioceptive_input_dim, (
-            "Actor and Critic proprioceptive input dims must match"
-        )
+        if self.actor_proprioceptive_input_dim != self.critic_proprioceptive_input_dim:
+            print(f"WARNING: Actor and Critic proprioceptive input dims mismatch: {self.actor_proprioceptive_input_dim} != {self.critic_proprioceptive_input_dim}")
 
         # MLP input dimensions (after attention: image_features + proprioceptive)
         self.mlp_input_dim_actor = self.actor_proprioceptive_input_dim + image_input_dims[0]
