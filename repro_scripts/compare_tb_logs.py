@@ -25,7 +25,8 @@ DEFAULT_RUNS = {
     "SRU+DML": "logs/rsl_rl/b2w_navigation_mdpo/2026-05-22_11-55-51/events.out.tfevents.1779465360.guacamole.1548052.0",
     "LSTM+DML": "logs/rsl_rl/b2w_navigation_mdpo_lstm/2026-06-09_11-51-53/events.out.tfevents.1781020315.guacamole.1764439.0",
     "Ablate Proprioceptive": "logs/rsl_rl/b2w_navigation_mdpo/2026-06-08_18-26-06/events.out.tfevents.1780957568.guacamole.1568647.0",
-    "Ball Target": "logs/rsl_rl/b2w_navigation_mdpo_ball/2026-06-10_18-26-24/events.out.tfevents.1781130386.guacamole.2087023.0",
+    "Ball Target [0.5, 1]": "logs/rsl_rl/b2w_navigation_mdpo_ball/2026-06-10_18-26-24/events.out.tfevents.1781130386.guacamole.2087023.0",
+    "Ball Target [0, 1]": "logs/rsl_rl/b2w_navigation_mdpo/2026-06-10_22-59-11/events.out.tfevents.1781146753.guacamole.2150797.0",
 }
 
 
@@ -38,6 +39,7 @@ PLOT_GROUPS = [
     {"title": "Reach Goal XY Tight", "filter": "Episode_Reward/reach_goal_xy_tight"},
     {"title": "Episode Termination", "filter": "Episode_Termination/time_out"},
     {"title": "Success Rate", "filter": "Metrics/robot_goal/success_rate"},
+    {"title": "Velocity Toward Goal", "filter": "Metrics/robot_goal/velocity_toward_goal"},
 ]
 
 COLS = 3
