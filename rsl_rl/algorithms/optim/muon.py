@@ -216,6 +216,8 @@ class SingleDeviceMuonWithAuxAdam(torch.optim.Optimizer):
         for group in self.param_groups:
             if group["use_muon"]:
                 for p in group["params"]:
+                    if p.grad is None:
+                        continue
                     state = self.state[p]
                     if len(state) == 0:
                         state["momentum_buffer"] = torch.zeros_like(p)
@@ -224,6 +226,8 @@ class SingleDeviceMuonWithAuxAdam(torch.optim.Optimizer):
                     p.add_(update, alpha=-group["lr"])
             else:
                 for p in group["params"]:
+                    if p.grad is None:
+                        continue
                     state = self.state[p]
                     if len(state) == 0:
                         state["exp_avg"] = torch.zeros_like(p)
