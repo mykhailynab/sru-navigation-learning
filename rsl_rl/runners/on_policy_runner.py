@@ -94,6 +94,7 @@ class OnPolicyRunner:
         self.tot_timesteps = 0
         self.tot_time = 0
         self.current_learning_iteration = 0
+        self._unfreeze_critic_at_iter = None  # Set by load_critic_weights()
         self.git_status_repos = [rsl_rl.__file__]
 
     def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False):
@@ -146,6 +147,12 @@ class OnPolicyRunner:
         tot_iter = start_iter + num_learning_iterations
 
         for it in range(start_iter, tot_iter):
+            # Unfreeze critic if it was frozen by load_critic_weights()
+            if self._unfreeze_critic_at_iter is not None and it >= self._unfreeze_critic_at_iter:
+                self._set_critic_requires_grad(True)
+                self._unfreeze_critic_at_iter = None
+                print(f"[INFO] Critic unfrozen at iteration {it}")
+
             start = time.time()
 
             # Check if we should start recording video this iteration
@@ -376,6 +383,52 @@ class OnPolicyRunner:
             self.critic_obs_normalizer.load_state_dict(loaded_dict["critic_obs_norm_state_dict"])
         self.current_learning_iteration = loaded_dict["iter"]
         return loaded_dict["infos"]
+
+    def load_critic_weights(self, path, freeze_for=500):
+        """Load only critic weights from a checkpoint, keeping actor random.
+
+        Optionally freeze the critic for ``freeze_for`` training iterations.
+        """
+        loaded_dict = torch.load(path, map_location=self.device, weights_only=False)
+        full_state = loaded_dict["model_state_dict"]
+
+        def _critic_keys(model):
+            critic_ids = set(id(p) for p in model.get_critic_parameters())
+            return {name for name, p in model.named_parameters() if id(p) in critic_ids}
+
+        if self.is_mdpo:
+            for ac in [self.alg.actor_critic_1, self.alg.actor_critic_2]:
+                keys = _critic_keys(ac)
+                critic_state = {k: v for k, v in full_state.items() if k in keys}
+                ac.load_state_dict(critic_state, strict=False)
+        else:
+            ac = self.alg.actor_critic
+            keys = _critic_keys(ac)
+            critic_state = {k: v for k, v in full_state.items() if k in keys}
+            ac.load_state_dict(critic_state, strict=False)
+
+        # Load critic observation normalizer if available
+        if self.empirical_normalization and "critic_obs_norm_state_dict" in loaded_dict:
+            self.critic_obs_normalizer.load_state_dict(loaded_dict["critic_obs_norm_state_dict"])
+
+        # Freeze critic
+        if freeze_for > 0:
+            self._unfreeze_critic_at_iter = freeze_for
+            self._set_critic_requires_grad(False)
+            print(f"[INFO] Critic frozen for first {freeze_for} iterations")
+
+        loaded_iter = loaded_dict.get("iter", "?")
+        print(f"[INFO] Loaded critic weights from: {path} (trained for {loaded_iter} iters)")
+
+    def _set_critic_requires_grad(self, requires_grad: bool):
+        """Set requires_grad on all critic parameters."""
+        if self.is_mdpo:
+            models = [self.alg.actor_critic_1, self.alg.actor_critic_2]
+        else:
+            models = [self.alg.actor_critic]
+        for model in models:
+            for param in model.get_critic_parameters():
+                param.requires_grad = requires_grad
 
     def get_inference_policy(self, device=None):
         """Get the inference policy function."""
